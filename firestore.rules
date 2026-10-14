@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'leotorras75@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidStatus(status) {
+      return status in ['waiting', 'in_progress', 'resolved', 'cancelled'];
+    }
+
+    function isValidUrgency(urgency) {
+      return urgency in ['normal', 'blocking', 'quick_question'];
+    }
+
+    function isValidTicket(data) {
+      return data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 60 &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 50 &&
+        data.description is string && data.description.size() >= 1 && data.description.size() <= 1000 &&
+        isValidStatus(data.status) &&
+        (!('tableNumber' in data) || (data.tableNumber is string && data.tableNumber.size() <= 30)) &&
+        (!('screenshotUrl' in data) || (data.screenshotUrl is string && data.screenshotUrl.size() <= 400000)) &&
+        (!('urgency' in data) || isValidUrgency(data.urgency)) &&
+        (!('studentUid' in data) || (data.studentUid is string && data.studentUid.size() <= 128)) &&
+        (!('resolvedBy' in data) || (data.resolvedBy is string && data.resolvedBy.size() <= 60));
+    }
+
+    function isValidTicketCreate(data) {
+      return isValidTicket(data) &&
+        data.keys().hasAll(['studentName', 'category', 'description', 'status']) &&
+        data.keys().hasOnly(['studentName', 'category', 'description', 'status', 'tableNumber', 'screenshotUrl', 'urgency', 'studentUid', 'createdAt', 'updatedAt', 'resolvedAt', 'resolvedBy']);
+    }
+
+    match /tickets/{ticketId} {
+      // Students and teacher can read active tickets in the classroom
+      allow read, list: if true;
+
+      // Anyone in class can submit a help request ticket
+      allow create: if isValidId(ticketId) && isValidTicketCreate(incoming());
+
+      // Update allowed: teacher marks as in_progress/resolved, or student cancels
+      allow update: if isValidId(ticketId) &&
+        isValidTicket(incoming()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt', 'resolvedAt', 'resolvedBy', 'description', 'tableNumber', 'category', 'urgency']);
+
+      // Delete allowed for cleanup / teacher removing resolved tickets
+      allow delete: if isValidId(ticketId);
+    }
+
+    function isValidSession(data) {
+      return data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+        data.totalTickets is number &&
+        data.resolvedTickets is number &&
+        (!('courseCode' in data) || (data.courseCode is string && data.courseCode.size() <= 30)) &&
+        (!('teacherPasscode' in data) || (data.teacherPasscode is string && data.teacherPasscode.size() <= 64));
+    }
+
+    match /classSessions/{sessionId} {
+      allow read: if true;
+      allow write: if isValidId(sessionId) && isValidSession(incoming());
+    }
+
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

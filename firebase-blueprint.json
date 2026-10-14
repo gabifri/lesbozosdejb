@@ -1,0 +1,116 @@
+{
+  "entities": {
+    "Ticket": {
+      "title": "Ticket",
+      "description": "A student help request ticket in the classroom queue",
+      "type": "object",
+      "properties": {
+        "studentName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "description": "Name of the student requesting assistance"
+        },
+        "tableNumber": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Optional physical location or table of the student"
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Category or topic of the problem (e.g. JavaScript, HTML/CSS, Git)"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 1000,
+          "description": "Description of the student's issue or question"
+        },
+        "screenshotUrl": {
+          "type": "string",
+          "maxLength": 400000,
+          "description": "Optional base64 image data or image URL of error screenshot"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["waiting", "in_progress", "resolved", "cancelled"],
+          "description": "Current lifecycle status of the help request"
+        },
+        "urgency": {
+          "type": "string",
+          "enum": ["normal", "blocking", "quick_question"],
+          "description": "Urgency level of the help request"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when ticket was created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when ticket was last updated"
+        },
+        "resolvedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when teacher resolved the ticket"
+        },
+        "studentUid": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Optional UID of student if authenticated"
+        }
+      },
+      "required": ["studentName", "category", "description", "status"]
+    },
+    "ClassSession": {
+      "title": "ClassSession",
+      "description": "Metadata and daily counters for the active class session",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Title of the active class or workshop"
+        },
+        "courseCode": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Optional course code or group identifier"
+        },
+        "teacherPasscode": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Passcode required to unlock teacher control panel"
+        },
+        "totalTickets": {
+          "type": "number",
+          "description": "Total counter of tickets generated in this session"
+        },
+        "resolvedTickets": {
+          "type": "number",
+          "description": "Total counter of tickets successfully handled by teacher"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["title", "totalTickets", "resolvedTickets"]
+    }
+  },
+  "firestore": {
+    "/tickets/{ticketId}": {
+      "schema": "Ticket",
+      "description": "Student queue tickets for the classroom"
+    },
+    "/classSessions/{sessionId}": {
+      "schema": "ClassSession",
+      "description": "Class session status and statistics"
+    }
+  }
+}

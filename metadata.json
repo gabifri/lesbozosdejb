@@ -1,0 +1,6 @@
+{
+  "name": "Les Bozo de JB",
+  "description": "File d'attente interactive et tableau de bord pédagogique en temps réel pour Jean-Baptiste et ses élèves en autonomie.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
